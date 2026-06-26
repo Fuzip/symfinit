@@ -1,0 +1,20 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+foreach ([__DIR__.'/../../../autoload.php', __DIR__.'/../vendor/autoload.php'] as $autoload) {
+    if (is_file($autoload)) {
+        require $autoload;
+        break;
+    }
+}
+
+use Symfony\Component\Console\Application;
+use SymfonyScaffold\Installer\InstallerCommand;
+
+$cmd = new InstallerCommand();
+$app = new Application('Symfony scaffold', InstallerCommand::version());
+$app->addCommand($cmd);
+$app->setDefaultCommand((string) $cmd->getName(), true);
+$app->run();
