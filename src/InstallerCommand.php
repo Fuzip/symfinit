@@ -10,10 +10,11 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Question\ChoiceQuestion;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use SymfonyScaffold\Installer\Github\GithubClient;
+use SymfonyScaffold\Installer\Runner\ProjectRunner;
+use SymfonyScaffold\Installer\Symfony\SymfonyVersionResolver;
 
 /**
  * @author Victor Dittiere <victor.dittiere@camif.fr>
@@ -23,9 +24,13 @@ class InstallerCommand extends Command
 {
     public const string VERSION = '@package_version@';
     private const string NAME_PATTERN = '/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/';
+    private const string SYMFONY_DOCKER_REPOSITORY = 'dunglas/symfony-docker';
 
-    public function __construct(private readonly GithubClient $githubClient)
-    {
+    public function __construct(
+        private readonly GithubClient $githubClient = new GithubClient(),
+        private readonly SymfonyVersionResolver $symfonyVersionResolver = new SymfonyVersionResolver(),
+        private readonly ProjectRunner $projectStarter = new ProjectRunner(),
+    ) {
         parent::__construct();
     }
 
@@ -47,7 +52,7 @@ class InstallerCommand extends Command
     {
         $this
             ->addArgument('name', InputArgument::OPTIONAL, 'The name of the project')
-            ->addOption('frankenphp-version', 'f', InputOption::VALUE_REQUIRED, 'FrankenPHP version to use (e.g. v1.12, v1.12.4, latest)')
+            ->addOption('symfony-version', null, InputOption::VALUE_REQUIRED, 'The Symfony version to use (e.g. "8" or "8.4")')
         ;
     }
 
@@ -58,16 +63,29 @@ class InstallerCommand extends Command
 
         try {
             $name = $this->resolveProjectName($io, $input);
-            $frankenPhpVersion = $this->resolveFrankenPhpVersion($io, $input);
         } catch (\InvalidArgumentException $e) {
             $io->error($e->getMessage());
 
             return Command::INVALID;
-        } catch (\Throwable $e) {
+        }
+
+        $symfonyVersionOption = $input->getOption('symfony-version');
+
+        try {
+            $resolved = \is_string($symfonyVersionOption) && '' !== $symfonyVersionOption
+                ? $this->symfonyVersionResolver->resolve($symfonyVersionOption)
+                : $this->symfonyVersionResolver->resolveLatestLts();
+        } catch (\InvalidArgumentException|\RuntimeException $e) {
             $io->error($e->getMessage());
 
-            return Command::FAILURE;
+            return Command::INVALID;
         }
+
+        if (!$resolved->isLts) {
+            $io->warning(sprintf('Symfony %s is not an LTS version.', $resolved->version));
+        }
+
+        $symfonyVersion = $resolved->version;
 
         $projectDir = (getcwd() ?: '.').\DIRECTORY_SEPARATOR.$name;
         if (file_exists($projectDir)) {
@@ -76,14 +94,31 @@ class InstallerCommand extends Command
             return Command::INVALID;
         }
 
-        $io->section(sprintf('Creating project "%s" with FrankenPHP %s', $name, $frankenPhpVersion));
+        try {
+            $this->githubClient->clone(self::SYMFONY_DOCKER_REPOSITORY, $projectDir);
+        } catch (\Throwable $e) {
+            $io->error($e->getMessage());
+
+            return Command::FAILURE;
+        }
+
+        $io->text(sprintf('Project cloned into <info>%s</info>.', $projectDir));
+
+        try {
+            $this->projectStarter->start($projectDir, $symfonyVersion, static function (string $type, string $buffer) use ($output): void {
+                $output->write($buffer);
+            });
+        } catch (\Throwable $e) {
+            $io->error($e->getMessage());
+
+            return Command::FAILURE;
+        }
+
+        $io->success(sprintf('Project %s is ready.', $name));
 
         return Command::SUCCESS;
     }
 
-    /**
-     * Resolve the project name command argument.
-     */
     private function resolveProjectName(SymfonyStyle $io, InputInterface $input): string
     {
         $name = $input->getArgument('name');
@@ -96,70 +131,5 @@ class InstallerCommand extends Command
         $question->setMaxAttempts(3);
 
         return (string) $io->askQuestion($question);
-    }
-
-    /**
-     * Resolve the FrankenPHP version command option.
-     *
-     * @throws \Throwable
-     */
-    private function resolveFrankenPhpVersion(SymfonyStyle $io, InputInterface $input): string
-    {
-        $version = $input->getOption('frankenphp-version');
-
-        // No version given: ask interactively or fetch latest
-        if (null === $version) {
-            if (!$input->isInteractive()) {
-                $io->text('Fetching latest FrankenPHP release from GitHub...');
-                $tag = $this->githubClient->getLatestTag();
-                if (null === $tag) {
-                    throw new \RuntimeException('Could not fetch latest FrankenPHP release from GitHub.');
-                }
-                $io->text(sprintf('Using FrankenPHP <info>%s</info> (latest).', $tag));
-
-                return $tag;
-            }
-
-            $tags = $this->githubClient->getLatestTags(10);
-            if ([] === $tags) {
-                throw new \RuntimeException('Could not fetch FrankenPHP releases from GitHub.');
-            }
-
-            return (string) $io->askQuestion(new ChoiceQuestion('Select a FrankenPHP version', $tags, $tags[0]));
-        }
-
-        // "latest" keyword: fetch latest release
-        if ('latest' === $version) {
-            $io->text('Fetching latest FrankenPHP release from GitHub...');
-            $tag = $this->githubClient->getLatestTag();
-            if (null === $tag) {
-                throw new \RuntimeException('Could not fetch latest FrankenPHP release from GitHub.');
-            }
-            $io->text(sprintf('Using FrankenPHP <info>%s</info> (latest).', $tag));
-
-            return $tag;
-        }
-
-        // Resolve and check given version
-        $tag = str_starts_with($version, 'v') ? $version : 'v'.$version;
-        $shouldBeResolved = \count(explode('.', $version)) < 3;
-
-        if ($shouldBeResolved) {
-            $io->text(sprintf('Resolving FrankenPHP version <info>%s</info>...', $version));
-            $resolvedTag = $this->githubClient->resolveTag($tag);
-            if (null === $resolvedTag) {
-                throw new \InvalidArgumentException(sprintf('No FrankenPHP release found matching version "%s".', $version));
-            }
-            $io->text(sprintf('Using FrankenPHP <info>%s</info>.', $resolvedTag));
-
-            return $resolvedTag;
-        }
-
-        $io->text(sprintf('Checking FrankenPHP version <info>%s</info>...', $version));
-        if (!$this->githubClient->checkTag($tag)) {
-            throw new \InvalidArgumentException(sprintf('FrankenPHP tag "%s" does not exist on GitHub.', $version));
-        }
-
-        return $tag;
     }
 }
