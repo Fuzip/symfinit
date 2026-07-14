@@ -4,25 +4,42 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
+  pull_request: ~
+  workflow_dispatch: ~
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
-  qa:
+  cs-fixer:
+    name: PHP-CS-Fixer
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
-      - name: Composer
-        uses: php-actions/composer@v6
+      - uses: shivammathur/setup-php@v2
         with:
-          php_version: "8.5"
-          args: install --quiet --no-scripts --no-progress
+          php-version: "8.5"
+          coverage: none
+          tools: composer:v2
 
-      - name: PHP-CS-Fixer
-        run: vendor/bin/php-cs-fixer check --using-cache=no
+      - uses: ramsey/composer-install@v4
 
-      - name: PHPStan
-        run: vendor/bin/phpstan analyse --no-progress src
+      - run: vendor/bin/php-cs-fixer check --using-cache=no
+
+  static-analysis:
+    name: PHPStan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          coverage: none
+          tools: composer:v2
+
+      - uses: ramsey/composer-install@v4
+
+      - run: vendor/bin/phpstan analyse --no-progress
