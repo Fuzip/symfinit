@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SymfonyScaffold\Installer\Github;
+namespace Symfinit\Installer\Github;
 
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;

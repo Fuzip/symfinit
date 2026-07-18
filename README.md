@@ -1,4 +1,4 @@
-# Symfony Scaffold
+# Symfinit
 
 > **Work in progress** — this tool is not yet ready for production use.
 
@@ -22,12 +22,12 @@ A CLI installer that scaffolds a new Symfony project pre-configured with Docker,
 ### Static binary (recommended)
 
 Download the latest release for your platform from the
-[Releases page](https://github.com/Fuzip/symfony-scaffold/symfony-scaffold/releases) and
+[Releases page](https://github.com/Fuzip/symfinit/symfinit/releases) and
 move the binary somewhere on your `$PATH`:
 
 ```sh
-curl -L https://github.com/Fuzip/symfony-scaffold/symfony-scaffold/releases/latest/download/symfony-scaffold-linux-x86_64 -o /usr/local/bin/symfony-scaffold
-chmod +x /usr/local/bin/symfony-scaffold
+curl -L https://github.com/Fuzip/symfinit/symfinit/releases/latest/download/symfinit-linux-x86_64 -o /usr/local/bin/symfinit
+chmod +x /usr/local/bin/symfinit
 ```
 
 ### Composer
@@ -35,15 +35,15 @@ chmod +x /usr/local/bin/symfony-scaffold
 If you already have PHP and Composer installed:
 
 ```sh
-composer global require fuzip/symfony-scaffold
+composer global require fuzip/symfinit
 ```
 
-The `symfony-scaffold` binary will be available in `~/.composer/vendor/bin`.
+The `symfinit` binary will be available in `~/.composer/vendor/bin`.
 
 ## Usage
 
 ```bash
-symfony-scaffold [project-name]
+symfinit [project-name]
 ```
 
 If no project name is provided, the installer will prompt you for one.
