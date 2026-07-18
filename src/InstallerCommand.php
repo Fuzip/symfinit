@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SymfonyScaffold\Installer;
+namespace Symfinit\Installer;
 
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -12,14 +12,14 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use SymfonyScaffold\Installer\Github\GithubClient;
-use SymfonyScaffold\Installer\Runner\ProjectRunner;
-use SymfonyScaffold\Installer\Symfony\SymfonyVersionResolver;
+use Symfinit\Installer\Github\GithubClient;
+use Symfinit\Installer\Runner\ProjectRunner;
+use Symfinit\Installer\Symfony\SymfonyVersionResolver;
 
 /**
  * @author Victor Dittiere <victor.dittiere@camif.fr>
  */
-#[AsCommand(name: 'symfony-scaffold', description: 'Scaffold a new Symfony docker project')]
+#[AsCommand(name: 'symfinit', description: 'Scaffold a new Symfony docker project')]
 class InstallerCommand extends Command
 {
     public const string VERSION = '@package_version@';
@@ -59,7 +59,7 @@ class InstallerCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $io->title('Symfony scaffold installer');
+        $io->title('Symfinit installer');
 
         try {
             $name = $this->resolveProjectName($io, $input);

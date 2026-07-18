@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SymfonyScaffold\Installer\Symfony;
+namespace Symfinit\Installer\Symfony;
 
 use Symfony\Component\HttpClient\NativeHttpClient;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;

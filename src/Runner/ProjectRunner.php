@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SymfonyScaffold\Installer\Runner;
+namespace Symfinit\Installer\Runner;
 
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;

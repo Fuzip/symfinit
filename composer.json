@@ -1,5 +1,5 @@
 {
-    "name": "fuzip/symfony-scaffold",
+    "name": "fuzip/symfinit",
     "description": "Symfony docker installer",
     "type": "library",
     "keywords": ["symfony", "docker", "installer", "scaffold"],
@@ -24,7 +24,7 @@
 	},
     "autoload": {
         "psr-4": {
-            "SymfonyScaffold\\Installer\\": "src/"
+            "Symfinit\\Installer\\": "src/"
         }
     },
     "config": {
