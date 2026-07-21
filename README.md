@@ -1,15 +1,6 @@
 # Symfinit
 
-> **Work in progress** — this tool is not yet ready for production use.
-
 A CLI installer that scaffolds a new Symfony project pre-configured with Docker, based on the [dunglas/symfony-docker](https://github.com/dunglas/symfony-docker) template.
-
-## What it does
-
-- Clones and configures the `dunglas/symfony-docker` template
-- Lets you choose your **PHP version**
-- Lets you choose your **Symfony version**
-- Lets you select the **Composer packages** you want to install
 
 ## Requirements
 
@@ -46,8 +37,16 @@ The `symfinit` binary will be available in `~/.composer/vendor/bin`.
 symfinit [project-name]
 ```
 
-If no project name is provided, the installer will prompt you for one.
+You can choose the Symfony version that will be installed.
+
+```bash
+symfinit --symfony-version=7.4
+```
 
 ## License
 
 MIT — see [LICENCE](LICENCE).
+
+## Credits
+
+Created by [Fuzip](https://github.com/Fuzip).
