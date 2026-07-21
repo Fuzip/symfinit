@@ -1,0 +1,139 @@
+name: Release
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  gate:
+    name: Verify E2E green
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check E2E status for ${{ github.sha }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Prefer the canonical push-triggered run on this SHA; fall back to
+          # any successful run (e.g. workflow_dispatch re-run after a fix).
+          status=$(gh run list \
+            --repo ${{ github.repository }} \
+            --workflow=e2e.yml \
+            --commit=${{ github.sha }} \
+            --event push \
+            --limit 1 \
+            --json conclusion \
+            --jq '.[0].conclusion // "missing"')
+          if [ "$status" != "success" ]; then
+            status=$(gh run list \
+              --repo ${{ github.repository }} \
+              --workflow=e2e.yml \
+              --commit=${{ github.sha }} \
+              --status success \
+              --limit 1 \
+              --json conclusion \
+              --jq '.[0].conclusion // "missing"')
+          fi
+          echo "E2E conclusion for ${{ github.sha }}: $status"
+          if [ "$status" != "success" ]; then
+            echo "::error::E2E workflow for this commit is '$status' — refusing to release."
+            echo "Re-run the E2E workflow on this commit (workflow_dispatch) and re-tag once green."
+            exit 1
+          fi
+
+  build:
+    name: Build ${{ matrix.os }}-${{ matrix.arch }}
+    needs: gate
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            arch: x86_64
+            runner: ubuntu-latest
+          - os: linux
+            arch: aarch64
+            runner: ubuntu-24.04-arm
+          - os: macos
+            arch: x86_64
+            runner: macos-15-intel
+          - os: macos
+            arch: aarch64
+            runner: macos-14
+
+    env:
+      EXTENSIONS: phar,ctype,mbstring,zlib,openssl
+      # Mirror of EXTENSIONS with dashes — cache keys reject commas.
+      EXTENSIONS_KEY: phar-ctype-mbstring-zlib-openssl
+      # spc fetches source metadata from the GitHub API; authenticate to
+      # avoid the 60 req/h unauthenticated rate limit (403 on cache miss).
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          ini-values: phar.readonly=0
+          tools: composer:v2
+
+      - name: Install dependencies (production)
+        run: composer install --no-dev --no-interaction --no-progress --optimize-autoloader
+
+      - name: Set package version
+        run: php -r '$f="src/InstallerCommand.php"; file_put_contents($f, str_replace("@package_version@", getenv("GITHUB_REF_NAME"), file_get_contents($f)));'
+
+      - name: Build PHAR
+        run: php -d phar.readonly=0 scripts/build-phar.php dist/symfinit.phar
+
+      - name: Cache spc sources
+        uses: actions/cache@v5
+        with:
+          path: |
+            downloads
+            buildroot/source
+          key: spc-${{ matrix.os }}-${{ matrix.arch }}-${{ env.EXTENSIONS_KEY }}
+
+      - name: Download spc
+        run: |
+          curl -fsSL -o spc "https://dl.static-php.dev/static-php-cli/spc-bin/nightly/spc-${{ matrix.os }}-${{ matrix.arch }}"
+          chmod +x ./spc
+
+      - name: Download PHP sources
+        run: ./spc download --for-extensions="$EXTENSIONS" --with-php=8.5
+
+      - name: Install build deps
+        run: ./spc doctor --auto-fix
+
+      - name: Build micro SAPI
+        run: ./spc build "$EXTENSIONS" --build-micro
+
+      - name: Combine PHAR + micro
+        run: |
+          ./spc micro:combine dist/symfinit.phar -O "dist/symfinit-${{ matrix.os }}-${{ matrix.arch }}"
+          chmod +x "dist/symfinit-${{ matrix.os }}-${{ matrix.arch }}"
+          rm -f dist/symfinit.phar
+
+      - name: Generate checksum
+        working-directory: dist
+        run: shasum -a 256 "symfinit-${{ matrix.os }}-${{ matrix.arch }}" > "symfinit-${{ matrix.os }}-${{ matrix.arch }}.sha256"
+
+      - name: Smoke test built binary
+        run: |
+          ./dist/symfinit-${{ matrix.os }}-${{ matrix.arch }} --version
+          ./dist/symfinit-${{ matrix.os }}-${{ matrix.arch }} --help
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: dist/*
