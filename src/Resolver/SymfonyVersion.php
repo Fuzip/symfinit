@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Symfinit\Installer\Symfony;
+namespace Symfinit\Installer\Resolver;
 
 final readonly class SymfonyVersion
 {

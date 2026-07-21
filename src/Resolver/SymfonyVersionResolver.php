@@ -2,13 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Symfinit\Installer\Symfony;
+namespace Symfinit\Installer\Resolver;
 
 use Symfony\Component\HttpClient\NativeHttpClient;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
+ * Resolve a Symfony version.
+ *
  * @author Victor Dittiere <victor.dittiere@icloud.com>
  */
 final class SymfonyVersionResolver
@@ -40,7 +42,7 @@ final class SymfonyVersionResolver
 
         $data = $this->fetchJson(sprintf(self::RELEASE_URL, $version));
 
-        if (isset($data['error_message']) && \is_string($data['error_message'])) {
+        if (isset($data['error_message']) && is_string($data['error_message'])) {
             throw new \InvalidArgumentException($data['error_message']);
         }
 
@@ -65,7 +67,7 @@ final class SymfonyVersionResolver
         $data = $this->fetchJson(self::RELEASES_URL);
         $ltsPatchVersion = $data['symfony_versions']['lts'] ?? null;
 
-        if (!\is_string($ltsPatchVersion) || !preg_match('/^(\d+\.\d+)/', $ltsPatchVersion, $matches)) {
+        if (!is_string($ltsPatchVersion) || !preg_match('/^(\d+\.\d+)/', $ltsPatchVersion, $matches)) {
             throw new \RuntimeException('Unable to determine the latest Symfony LTS version.');
         }
 

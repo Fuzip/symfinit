@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Symfinit\Installer;
 
 use Symfinit\Installer\Github\GithubClient;
+use Symfinit\Installer\Resolver\SymfonyVersionResolver;
 use Symfinit\Installer\Runner\ProjectRunner;
-use Symfinit\Installer\Symfony\SymfonyVersionResolver;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -34,11 +34,17 @@ class InstallerCommand extends Command
         parent::__construct();
     }
 
+    /**
+     * Return the command version.
+     */
     public static function version(): string
     {
         return str_starts_with(self::VERSION, '@') ? 'dev' : self::VERSION;
     }
 
+    /**
+     * Validate the given project name.
+     */
     public static function validateName(string $name): string
     {
         if (!preg_match(self::NAME_PATTERN, $name)) {
@@ -53,6 +59,7 @@ class InstallerCommand extends Command
         $this
             ->addArgument('name', InputArgument::OPTIONAL, 'The name of the project')
             ->addOption('symfony-version', null, InputOption::VALUE_REQUIRED, 'The Symfony version to use (e.g. "8" or "8.4")')
+            ->addOption('path', null, InputOption::VALUE_REQUIRED, 'The directory where the project will be created')
         ;
     }
 
@@ -72,7 +79,7 @@ class InstallerCommand extends Command
         $symfonyVersionOption = $input->getOption('symfony-version');
 
         try {
-            $resolved = \is_string($symfonyVersionOption) && '' !== $symfonyVersionOption
+            $resolved = is_string($symfonyVersionOption) && !empty($symfonyVersionOption)
                 ? $this->symfonyVersionResolver->resolve($symfonyVersionOption)
                 : $this->symfonyVersionResolver->resolveLatestLts();
         } catch (\InvalidArgumentException|\RuntimeException $e) {
@@ -87,7 +94,12 @@ class InstallerCommand extends Command
 
         $symfonyVersion = $resolved->version;
 
-        $projectDir = (getcwd() ?: '.').\DIRECTORY_SEPARATOR.$name;
+        $io->info("Symfony version $symfonyVersion.");
+
+        $pathOption = $input->getOption('path');
+        $basePath = is_string($pathOption) && !empty($pathOption) ? $pathOption : (getcwd() ?: '.');
+
+        $projectDir = rtrim($basePath, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$name;
         if (file_exists($projectDir)) {
             $io->error(sprintf('Directory %s already exists.', $projectDir));
 
@@ -119,10 +131,13 @@ class InstallerCommand extends Command
         return Command::SUCCESS;
     }
 
+    /**
+     * Resolve project name argument.
+     */
     private function resolveProjectName(SymfonyStyle $io, InputInterface $input): string
     {
         $name = $input->getArgument('name');
-        if (\is_string($name) && '' !== $name) {
+        if (is_string($name) && !empty($name)) {
             return self::validateName($name);
         }
 
