@@ -1,6 +1,6 @@
 # Craft definition for static-php-cli
 php-version: 8.5
-extensions: phar,ctype,mbstring,zlib,openssl
+extensions: phar,ctype,mbstring,zlib,openssl,filter
 sapi:
   - cli
   - micro
