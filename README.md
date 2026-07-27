@@ -8,7 +8,22 @@ A CLI installer that scaffolds a new Symfony project pre-configured with Docker,
 
 ## Installation
 
-### Static binary (recommended)
+### Homebrew (recommended)
+
+Be sure to have Homebrew installed then run:
+
+```sh
+brew install fuzip/symfinit
+```
+
+Or you can tap the repository and install the formula:
+
+```sh
+brew tap fuzip/symfinit
+brew install symfinit
+```
+
+### Static binary
 
 Download the latest release for your platform from the
 [Releases page](https://github.com/Fuzip/symfinit/symfinit/releases) and
