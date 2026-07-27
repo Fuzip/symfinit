@@ -1,4 +1,10 @@
 /vendor
 /.idea
 /dist
+/buildroot
+/log
+/pkgroot
+/source
+/downloads
+.spc.cache.php
 .php-cs-fixer.cache

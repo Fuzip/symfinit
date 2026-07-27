@@ -106,17 +106,11 @@ jobs:
 
       - name: Download spc
         run: |
-          curl -fsSL -o spc "https://dl.static-php.dev/static-php-cli/spc-bin/nightly/spc-${{ matrix.os }}-${{ matrix.arch }}"
+          curl -fsSL -o spc "https://dl.static-php.dev/v3/spc-bin/nightly/spc-${{ matrix.os }}-${{ matrix.arch }}"
           chmod +x ./spc
 
-      - name: Download PHP sources
-        run: ./spc download --for-extensions="$EXTENSIONS" --with-php=8.5
-
-      - name: Install build deps
-        run: ./spc doctor --auto-fix
-
-      - name: Build micro SAPI
-        run: ./spc build "$EXTENSIONS" --build-micro
+      - name: Craft
+        run: ./spc craft
 
       - name: Combine PHAR + micro
         run: |
