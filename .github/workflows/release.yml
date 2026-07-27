@@ -131,3 +131,84 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: dist/*
+
+  update-tap:
+    name: Update Homebrew tap
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tap
+        uses: actions/checkout@v6
+        with:
+          repository: Fuzip/homebrew-symfinit
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+
+      - name: Download checksums
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir checksums
+          gh release download ${{ github.ref_name }} \
+            --repo ${{ github.repository }} \
+            --pattern '*.sha256' \
+            --dir checksums
+
+      - name: Generate formula
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          sha() { cut -d' ' -f1 "checksums/symfinit-$1.sha256"; }
+
+          cat > tap/Formula/symfinit.rb <<EOF
+          class Symfinit < Formula
+            desc "CLI installer that scaffolds a new Symfony project pre-configured with Docker"
+            homepage "https://github.com/Fuzip/symfinit"
+            version "$VERSION"
+            license "MIT"
+
+            on_macos do
+              on_arm do
+                url "https://github.com/Fuzip/symfinit/releases/download/${{ github.ref_name }}/symfinit-macos-aarch64"
+                sha256 "$(sha macos-aarch64)"
+              end
+              on_intel do
+                url "https://github.com/Fuzip/symfinit/releases/download/${{ github.ref_name }}/symfinit-macos-x86_64"
+                sha256 "$(sha macos-x86_64)"
+              end
+            end
+
+            on_linux do
+              on_arm do
+                url "https://github.com/Fuzip/symfinit/releases/download/${{ github.ref_name }}/symfinit-linux-aarch64"
+                sha256 "$(sha linux-aarch64)"
+              end
+              on_intel do
+                url "https://github.com/Fuzip/symfinit/releases/download/${{ github.ref_name }}/symfinit-linux-x86_64"
+                sha256 "$(sha linux-x86_64)"
+              end
+            end
+
+            def install
+              binary = Dir["symfinit-*"].first
+              chmod 0755, binary
+              bin.install binary => "symfinit"
+            end
+
+            test do
+              assert_match "v#{version}", shell_output("#{bin}/symfinit --version")
+            end
+          end
+          EOF
+
+      - name: Commit and push
+        working-directory: tap
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet Formula/symfinit.rb; then
+            echo "Formula unchanged, nothing to push."
+            exit 0
+          fi
+          git add Formula/symfinit.rb
+          git commit -m "symfinit ${{ github.ref_name }}"
+          git push
