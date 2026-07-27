@@ -4,9 +4,7 @@ A CLI installer that scaffolds a new Symfony project pre-configured with Docker,
 
 ## Requirements
 
-- PHP 8.5+
-- Composer
-- Docker & Docker Compose
+- Docker
 
 ## Installation
 
