@@ -1,0 +1,43 @@
+name: Claude PR Summary
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code
+        id: claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          prompt: |
+            Summarize this pull request for reviewers: ${{ github.repository }}#${{ github.event.pull_request.number }}
+
+            1. Run `gh pr diff ${{ github.event.pull_request.number }}` to see the full diff.
+            2. Write a concise English summary with:
+               - A short paragraph on what the PR does and why (infer intent from the diff and PR title/description).
+               - A bulleted list of the concrete changes (files/areas touched, what changed in each).
+            3. Post the summary as a PR comment:
+               - If this is the first run for this PR (event action is "opened"), run:
+                 `gh pr comment ${{ github.event.pull_request.number }} --body-file <path-to-file-with-summary>`
+               - If this is a follow-up run (event action is "synchronize", i.e. new commits were pushed), update the
+                 existing summary instead of posting a new one, by running:
+                 `gh pr comment ${{ github.event.pull_request.number }} --edit-last --body-file <path-to-file-with-summary>`
+               Write the summary to a temporary file first, then pass it via --body-file.
+
+            The current event action is: ${{ github.event.action }}
+
+          claude_args: '--allowed-tools "Bash(gh pr diff:*),Bash(gh pr comment:*)"'
