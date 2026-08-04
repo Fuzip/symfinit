@@ -16,6 +16,6 @@ return new Config()
 	->setFinder(
 		new Finder()
 			->in(__DIR__)
-			->exclude(['vendor'])
+			->exclude(['buildroot', 'dist', 'downloads', 'log', 'pkgroot', 'scripts', 'source', 'vendor'])
 	)
 ;
