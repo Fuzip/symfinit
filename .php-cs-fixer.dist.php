@@ -7,15 +7,15 @@ use PhpCsFixer\Finder;
 use PhpCsFixer\Runner\Parallel\ParallelConfigFactory;
 
 return new Config()
-	->setParallelConfig(ParallelConfigFactory::detect())
-	->setRiskyAllowed(true)
+    ->setParallelConfig(ParallelConfigFactory::detect())
+    ->setRiskyAllowed(true)
     ->setRules([
         '@auto' => true,
-        '@Symfony' => true
+        '@Symfony' => true,
     ])
-	->setFinder(
-		new Finder()
-			->in(__DIR__)
-			->exclude(['buildroot', 'dist', 'downloads', 'log', 'pkgroot', 'scripts', 'source', 'vendor'])
-	)
+    ->setFinder(
+        new Finder()
+            ->in(__DIR__)
+            ->exclude(['buildroot', 'dist', 'downloads', 'log', 'pkgroot', 'scripts', 'source', 'vendor'])
+    )
 ;
