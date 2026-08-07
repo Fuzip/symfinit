@@ -160,6 +160,8 @@ class InstallerCommand extends Command
 
         $this->io->success(sprintf('Project %s is ready : %s', $this->projectName, $this->projectPath));
 
+        $this->io->info('Open https://localhost in your browser to access to the app.');
+
         return Command::SUCCESS;
     }
 }
