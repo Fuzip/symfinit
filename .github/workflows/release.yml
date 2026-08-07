@@ -156,14 +156,12 @@ jobs:
 
       - name: Generate formula
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
           sha() { cut -d' ' -f1 "checksums/symfinit-$1.sha256"; }
 
           cat > tap/Formula/symfinit.rb <<EOF
           class Symfinit < Formula
             desc "CLI installer that scaffolds a new Symfony project pre-configured with Docker"
             homepage "https://github.com/Fuzip/symfinit"
-            version "$VERSION"
             license "MIT"
 
             on_macos do
