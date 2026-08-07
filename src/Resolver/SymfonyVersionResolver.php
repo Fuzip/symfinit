@@ -26,14 +26,20 @@ final class SymfonyVersionResolver
      * Resolves a user-provided Symfony version (e.g. "8" or "8.4") against
      * the official releases feed.
      *
+     * If no version is provided, the latest LTS version is resolved.
+     *
      * A major-only version is resolved to its LTS minor, since every
      * Symfony major release line ends with an ".4" LTS release.
      *
      * @throws \InvalidArgumentException if the format is invalid or the version does not exist
      * @throws \RuntimeException         if the releases feed cannot be reached
      */
-    public function resolve(string $version): SymfonyVersion
+    public function resolve(?string $version): SymfonyVersion
     {
+        if (null === $version) {
+            return $this->resolveLatestLts();
+        }
+
         if (preg_match('/^\d+$/', $version)) {
             $version .= '.4';
         } elseif (!preg_match('/^\d+\.\d+$/', $version)) {
@@ -62,7 +68,7 @@ final class SymfonyVersionResolver
      *
      * @throws \RuntimeException if the releases feed cannot be reached or parsed
      */
-    public function resolveLatestLts(): SymfonyVersion
+    private function resolveLatestLts(): SymfonyVersion
     {
         $data = $this->fetchJson(self::RELEASES_URL);
         $ltsPatchVersion = $data['symfony_versions']['lts'] ?? null;

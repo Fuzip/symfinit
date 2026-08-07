@@ -15,6 +15,7 @@
     "require": {
         "php": "^8.5",
         "symfony/console": "^7.4",
+        "symfony/filesystem": "^7.4",
         "symfony/http-client": "^7.4",
         "symfony/process": "^7.4"
     },
