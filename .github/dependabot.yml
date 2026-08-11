@@ -5,6 +5,10 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 5
+    groups:
+      symfony:
+        patterns:
+          - "symfony/*"
     ignore:
       - dependency-name: "symfony/*"
         update-types: ["version-update:semver-major"]
