@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Symfinit\Installer\Runner;
 
+use Symfinit\Installer\Runner\Step\AddUserPermissionStep;
 use Symfinit\Installer\Runner\Step\RemoveGitDirectoryStep;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
@@ -36,6 +37,7 @@ final readonly class RunnerFactory
             $this->io,
             $this->projectPath,
             $symfonyVersion,
+            [new AddUserPermissionStep($this->io)]
         );
     }
 }
