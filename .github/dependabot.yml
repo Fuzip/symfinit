@@ -12,3 +12,7 @@ updates:
     ignore:
       - dependency-name: "symfony/*"
         update-types: ["version-update:semver-major"]
+      - dependency-name: "phpstan/phpstan"
+        update-types: ["version-update:semver-patch"]
+      - dependency-name: "friendsofphp/php-cs-fixer"
+        update-types: ["version-update:semver-patch"]
