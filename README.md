@@ -56,6 +56,13 @@ You can choose the Symfony version that will be installed.
 symfinit --symfony-version=7.4
 ```
 
+When the generated project includes a devcontainer configuration, `symfinit` offers to open it in a VS Code
+devcontainer. Use the `--open` option to open it directly without being asked.
+
+```bash
+symfinit my-app --open
+```
+
 ## Contributing
 
 Contributions are welcome! Please read the [CONTRIBUTING.md](CONTRIBUTING.md) file for more information.

@@ -16,6 +16,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Process\Process;
 
 /**
  * @author Victor Dittiere <victor.dittiere@icloud.com>
@@ -31,6 +32,7 @@ class InstallerCommand extends Command
     private string $projectName;
     private string $projectPath;
     private bool $noGit;
+    private bool $open;
     private SymfonyVersion $symfonyVersion;
     /** @var array<RunnerInterface> */
     private array $runners = [];
@@ -88,6 +90,12 @@ class InstallerCommand extends Command
                 InputOption::VALUE_NONE,
                 'Remove the .git directory from the generated project'
             )
+            ->addOption(
+                'open',
+                null,
+                InputOption::VALUE_NONE,
+                'Open the generated project in a VS Code devcontainer'
+            )
         ;
     }
 
@@ -106,6 +114,7 @@ class InstallerCommand extends Command
         $this->projectPath = rtrim((string) $input->getOption('path'), DIRECTORY_SEPARATOR);
         $this->symfonyVersion = $this->symfonyVersionResolver->resolve($input->getOption('symfony-version'));
         $this->noGit = (bool) $input->getOption('no-git');
+        $this->open = (bool) $input->getOption('open');
     }
 
     protected function interact(InputInterface $input, OutputInterface $output): void
@@ -162,6 +171,57 @@ class InstallerCommand extends Command
 
         $this->io->info('Open https://localhost in your browser to access to the app.');
 
+        if (is_file($this->projectPath.'/.devcontainer/devcontainer.json')) {
+            if ($this->open || ($input->isInteractive() && $this->io->confirm('Open the project in a VS Code devcontainer now?', false))) {
+                $this->io->info('Opening the project in VS Code in devcontainer mode.');
+                $this->openUri($this->buildDevcontainerUri());
+            }
+        }
+
         return Command::SUCCESS;
+    }
+
+    private function buildDevcontainerUri(): string
+    {
+        $devcontainerFile = $this->projectPath.'/.devcontainer/devcontainer.json';
+        $workspaceFolder = null;
+        $configuration = file_get_contents($devcontainerFile);
+
+        if (false !== $configuration) {
+            $configuration = preg_replace_callback(
+                '/("(?:\\\\.|[^"\\\\])*")|(\/\\*.*?\\*\/|\/\/[^\r\n]*)/s',
+                static fn (array $matches): string => $matches[1],
+                $configuration
+            ) ?? $configuration;
+
+            if (preg_match('/"workspaceFolder"\s*:\s*("(?:\\\\.|[^"\\\\])*")/', $configuration, $matches)) {
+                $decodedWorkspaceFolder = json_decode($matches[1]);
+
+                if (is_string($decodedWorkspaceFolder)) {
+                    $workspaceFolder = $decodedWorkspaceFolder;
+                }
+            }
+        }
+
+        $workspaceFolder ??= '/workspaces/'.$this->projectName;
+        $projectPath = realpath($this->projectPath) ?: $this->projectPath;
+
+        return 'vscode://vscode-remote/dev-container+'.bin2hex($projectPath).$workspaceFolder;
+    }
+
+    private function openUri(string $uri): void
+    {
+        $command = match (PHP_OS_FAMILY) {
+            'Darwin' => ['open', $uri],
+            'Windows' => ['cmd', '/c', 'start', '', $uri],
+            default => ['xdg-open', $uri],
+        };
+
+        $process = new Process($command);
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            $this->io->warning(sprintf('Unable to open VS Code automatically. Open this link in your browser instead: %s', $uri));
+        }
     }
 }
