@@ -56,6 +56,10 @@ You can choose the Symfony version that will be installed.
 symfinit --symfony-version=7.4
 ```
 
+## Contributing
+
+Contributions are welcome! Please read the [CONTRIBUTING.md](CONTRIBUTING.md) file for more information.
+
 ## License
 
 MIT — see [LICENCE](LICENCE).
